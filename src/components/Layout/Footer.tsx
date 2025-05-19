@@ -9,7 +9,10 @@ const Footer = () => {
       <div className="container px-4 sm:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="font-bold text-lg mb-4">Qurbani Connect</h3>
+            <div className="flex items-center gap-2 mb-4">
+              <img src="/lovable-uploads/400574e6-7b15-4fa2-a10f-85b42c0b8051.png" alt="Qurbani Connect Logo" className="h-10 w-auto" />
+              <h3 className="font-bold text-lg">Qurbani Connect</h3>
+            </div>
             <p className="text-muted-foreground mb-4">
               Facilitating the sacred tradition of Qurbani with care, transparency, and adherence to Islamic principles.
             </p>
