@@ -185,7 +185,7 @@ const AnimalListing = () => {
                 <SelectValue placeholder="Select price range" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Any Price</SelectItem>
+                <SelectItem value="any">Any Price</SelectItem>
                 <SelectItem value="0-15000">Under 15,000</SelectItem>
                 <SelectItem value="15000-25000">15,000 - 25,000</SelectItem>
                 <SelectItem value="25000-40000">25,000 - 40,000</SelectItem>
