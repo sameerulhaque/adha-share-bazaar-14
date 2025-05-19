@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -211,7 +210,7 @@ const AnimalGrid = ({ animals, loading }: { animals: Animal[], loading: boolean 
           <CardContent className="p-6">
             <div className="flex justify-between items-start mb-2">
               <h3 className="text-xl font-semibold">{animal.name}</h3>
-              <span className="text-brand-700 font-bold">₹{animal.price.toLocaleString()}</span>
+              <span className="text-brand-700 font-bold">₹{animal.price ? animal.price.toLocaleString() : '0'}</span>
             </div>
             <p className="text-sm text-muted-foreground mb-4">{animal.description}</p>
             

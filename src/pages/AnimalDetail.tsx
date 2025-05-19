@@ -32,6 +32,9 @@ const AnimalDetail = () => {
         const data = await animalService.getAnimalById(id);
         if (data) {
           setAnimal(data);
+          console.log("Animal data received:", data); // Debug log
+        } else {
+          console.error("No animal data returned for ID:", id);
         }
       } catch (error) {
         console.error("Failed to fetch animal details:", error);
@@ -68,7 +71,7 @@ const AnimalDetail = () => {
     );
   }
   
-  const totalPrice = shareCount * animal.pricePerShare;
+  const totalPrice = shareCount * (animal.pricePerShare || 0);
   
   const handleShareCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);
@@ -86,7 +89,7 @@ const AnimalDetail = () => {
       name: animal.name,
       category: animal.category,
       imageUrl: animal.imageUrl,
-      sharePrice: animal.pricePerShare,
+      sharePrice: animal.pricePerShare || 0,
       shares: shareCount,
       totalPrice: totalPrice
     });
