@@ -32,15 +32,15 @@ const Login = () => {
     <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-8">
       <Card className="w-full max-w-md border-brand-200">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Login to your account</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold text-foreground">Login to your account</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Enter your email and password to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" className="text-foreground">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -48,12 +48,13 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-background text-foreground"
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link to="/forgot-password" className="text-xs text-brand-600 hover:underline">
+                <Label htmlFor="password" className="text-foreground">Password</Label>
+                <Link to="/forgot-password" className="text-xs text-brand-600 hover:text-brand-700 hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -64,9 +65,10 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="bg-background text-foreground"
               />
             </div>
-            <Button type="submit" className="w-full bg-brand-600 hover:bg-brand-700" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white" disabled={isLoading}>
               {isLoading ? "Logging in..." : "Login"}
             </Button>
           </form>
@@ -74,7 +76,7 @@ const Login = () => {
           <div className="mt-4 text-center text-sm">
             <p className="text-muted-foreground">
               Don't have an account?{" "}
-              <Link to="/register" className="text-brand-600 hover:underline">
+              <Link to="/register" className="text-brand-600 hover:text-brand-700 hover:underline">
                 Sign up now
               </Link>
             </p>
@@ -83,11 +85,11 @@ const Login = () => {
         <CardFooter className="flex justify-center border-t p-4">
           <div className="text-xs text-center text-muted-foreground">
             By logging in, you agree to our{" "}
-            <Link to="/terms" className="hover:underline">
+            <Link to="/terms" className="text-brand-600 hover:text-brand-700 hover:underline">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link to="/privacy" className="hover:underline">
+            <Link to="/privacy" className="text-brand-600 hover:text-brand-700 hover:underline">
               Privacy Policy
             </Link>
             .

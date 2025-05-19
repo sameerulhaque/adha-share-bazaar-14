@@ -55,15 +55,15 @@ const Register = () => {
     <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-8">
       <Card className="w-full max-w-md border-brand-200">
         <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl font-bold text-foreground">Create an account</CardTitle>
+          <CardDescription className="text-muted-foreground">
             Enter your details below to create your account
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name" className="text-foreground">Full Name</Label>
               <Input
                 id="name"
                 type="text"
@@ -71,10 +71,11 @@ const Register = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                className="bg-background text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" className="text-foreground">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -82,10 +83,11 @@ const Register = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-background text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-foreground">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -93,10 +95,11 @@ const Register = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="bg-background text-foreground"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword" className="text-foreground">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 type="password"
@@ -104,6 +107,7 @@ const Register = () => {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
+                className="bg-background text-foreground"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -112,19 +116,19 @@ const Register = () => {
                 checked={acceptTerms} 
                 onCheckedChange={(checked) => setAcceptTerms(checked === true)} 
               />
-              <Label htmlFor="terms" className="text-sm leading-none">
+              <Label htmlFor="terms" className="text-sm leading-none text-foreground">
                 I agree to the{" "}
-                <Link to="/terms" className="text-brand-600 hover:underline">
+                <Link to="/terms" className="text-brand-600 hover:text-brand-700 hover:underline">
                   terms of service
                 </Link>{" "}
                 and{" "}
-                <Link to="/privacy" className="text-brand-600 hover:underline">
+                <Link to="/privacy" className="text-brand-600 hover:text-brand-700 hover:underline">
                   privacy policy
                 </Link>
                 .
               </Label>
             </div>
-            <Button type="submit" className="w-full bg-brand-600 hover:bg-brand-700" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Create account"}
             </Button>
           </form>
@@ -132,7 +136,7 @@ const Register = () => {
           <div className="mt-4 text-center text-sm">
             <p className="text-muted-foreground">
               Already have an account?{" "}
-              <Link to="/login" className="text-brand-600 hover:underline">
+              <Link to="/login" className="text-brand-600 hover:text-brand-700 hover:underline">
                 Login
               </Link>
             </p>
