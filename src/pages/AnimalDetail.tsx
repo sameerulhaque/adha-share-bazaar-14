@@ -113,6 +113,12 @@ const AnimalDetail = () => {
     return str.charAt(0).toUpperCase() + str.slice(1);
   };
 
+  // Helper function to safely format numbers with toLocaleString
+  const formatNumber = (num: number | undefined) => {
+    if (num === undefined || num === null) return '0';
+    return num.toLocaleString();
+  };
+
   return (
     <div className="container px-4 sm:px-8 py-8">
       <div className="flex flex-col md:flex-row gap-8">
@@ -165,7 +171,7 @@ const AnimalDetail = () => {
           </div>
           
           <div className="flex items-baseline gap-2 mb-6">
-            <span className="text-2xl font-bold">₹{animal.pricePerShare.toLocaleString()}</span>
+            <span className="text-2xl font-bold">₹{formatNumber(animal.pricePerShare)}</span>
             <span className="text-sm text-muted-foreground">per share</span>
           </div>
           
@@ -201,7 +207,7 @@ const AnimalDetail = () => {
             </div>
             <div>
               <h3 className="text-sm text-muted-foreground">Total Price</h3>
-              <p className="font-medium">₹{animal.price.toLocaleString()}</p>
+              <p className="font-medium">₹{formatNumber(animal.price)}</p>
             </div>
           </div>
           
@@ -285,7 +291,7 @@ const AnimalDetail = () => {
                 <div className="pt-4 border-t">
                   <div className="flex justify-between mb-4">
                     <span className="font-medium">Total Amount:</span>
-                    <span className="text-lg font-bold">₹{totalPrice.toLocaleString()}</span>
+                    <span className="text-lg font-bold">₹{formatNumber(totalPrice)}</span>
                   </div>
                   
                   <div className="flex gap-2">
@@ -360,7 +366,7 @@ const AnimalDetail = () => {
               </div>
               <div>
                 <h4 className="font-medium">Price per Share</h4>
-                <p className="text-muted-foreground">₹{animal.pricePerShare.toLocaleString()}</p>
+                <p className="text-muted-foreground">₹{formatNumber(animal.pricePerShare)}</p>
               </div>
             </div>
           </TabsContent>
