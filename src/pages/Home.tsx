@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Cow, Goat, Clock, Users } from "lucide-react";
+import { Beef, Sheep, Clock, Users } from "lucide-react";
 
 const Home = () => {
   const [timeLeft, setTimeLeft] = useState({
@@ -40,7 +40,7 @@ const Home = () => {
   
   const features = [
     {
-      icon: <Cow className="h-10 w-10 text-brand-600" />,
+      icon: <Beef className="h-10 w-10 text-brand-600" />,
       title: "Quality Animals",
       description: "Healthy, well-fed animals that meet all Islamic requirements for Qurbani."
     },
@@ -55,7 +55,7 @@ const Home = () => {
       description: "Transparent scheduling with notification system to keep you informed."
     },
     {
-      icon: <Goat className="h-10 w-10 text-brand-600" />,
+      icon: <Sheep className="h-10 w-10 text-brand-600" />,
       title: "Multiple Animals",
       description: "Choose from cows, goats, sheep and camels for your Qurbani."
     }
