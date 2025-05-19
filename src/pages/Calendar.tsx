@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { format } from "date-fns";
+import { useState, useEffect } from "react";
+import { format, parseISO } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,40 +9,48 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, ArrowRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-
-// Mock events data for demonstration
-const slaughterEvents = [
-  { id: 1, date: new Date(2025, 5, 20), animals: ["Premium Cow", "Large Goat"], location: "Central Facility" },
-  { id: 2, date: new Date(2025, 5, 22), animals: ["Medium Cow", "Standard Goat"], location: "East Facility" },
-  { id: 3, date: new Date(2025, 5, 25), animals: ["Large Cow", "Premium Goat"], location: "West Facility" },
-];
-
-const collectionEvents = [
-  { id: 1, date: new Date(2025, 5, 21), animals: ["Premium Cow", "Large Goat"], location: "Distribution Center A" },
-  { id: 2, date: new Date(2025, 5, 23), animals: ["Medium Cow", "Standard Goat"], location: "Distribution Center B" },
-  { id: 3, date: new Date(2025, 5, 26), animals: ["Large Cow", "Premium Goat"], location: "Distribution Center C" },
-];
+import { calendarService, CalendarEvent } from "@/services/calendarService";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const CalendarView = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [calendarType, setCalendarType] = useState<"slaughter" | "collection">("slaughter");
   
+  // Fetch events based on calendar type
+  const { data: events = [], isLoading, error } = useQuery({
+    queryKey: ['calendar', calendarType],
+    queryFn: () => calendarService.getEventsByType(calendarType),
+  });
+
+  // Show toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load calendar events", {
+        description: "Please try again later.",
+      });
+      console.error("Calendar fetch error:", error);
+    }
+  }, [error]);
+  
   // Get events for the selected date
   const getEventsForDate = (date: Date | undefined) => {
-    if (!date) return [];
+    if (!date || !events.length) return [];
     
-    const events = calendarType === "slaughter" ? slaughterEvents : collectionEvents;
-    return events.filter(event => 
-      event.date.getDate() === date.getDate() &&
-      event.date.getMonth() === date.getMonth() &&
-      event.date.getFullYear() === date.getFullYear()
-    );
+    return events.filter(event => {
+      const eventDate = parseISO(event.date);
+      return (
+        eventDate.getDate() === date.getDate() &&
+        eventDate.getMonth() === date.getMonth() &&
+        eventDate.getFullYear() === date.getFullYear()
+      );
+    });
   };
   
   // Generate all dates that have events
   const getDatesWithEvents = () => {
-    const events = calendarType === "slaughter" ? slaughterEvents : collectionEvents;
-    return events.map(event => event.date);
+    if (!events.length) return [];
+    return events.map(event => parseISO(event.date));
   };
   
   const selectedDateEvents = getEventsForDate(date);
@@ -76,50 +84,56 @@ const CalendarView = () => {
                 </TabsList>
               </Tabs>
               
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="rounded-md border"
-                modifiers={{
-                  booked: datesWithEvents,
-                }}
-                modifiersStyles={{
-                  booked: { 
-                    backgroundColor: calendarType === "slaughter" ? "#FECACA" : "#BFDBFE",
-                    color: calendarType === "slaughter" ? "#991B1B" : "#1E40AF",
-                    fontWeight: "bold"
-                  }
-                }}
-                components={{
-                  DayContent: ({ date, ...props }) => {
-                    const isBooked = datesWithEvents.some(d => 
-                      d.getDate() === date.getDate() &&
-                      d.getMonth() === date.getMonth() &&
-                      d.getFullYear() === date.getFullYear()
-                    );
-                    
-                    return (
-                      <div 
-                        {...props}
-                        className={cn(
-                          "relative flex h-9 w-9 items-center justify-center",
-                          isBooked && "font-bold"
-                        )}
-                      >
-                        {date.getDate()}
-                        {isBooked && (
-                          <div 
-                            className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                              calendarType === "slaughter" ? "bg-red-600" : "bg-blue-600"
-                            }`}
-                          />
-                        )}
-                      </div>
-                    );
-                  },
-                }}
-              />
+              {isLoading ? (
+                <div className="flex items-center justify-center h-[350px]">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  onSelect={setDate}
+                  className="rounded-md border"
+                  modifiers={{
+                    booked: datesWithEvents,
+                  }}
+                  modifiersStyles={{
+                    booked: { 
+                      backgroundColor: calendarType === "slaughter" ? "#FECACA" : "#BFDBFE",
+                      color: calendarType === "slaughter" ? "#991B1B" : "#1E40AF",
+                      fontWeight: "bold"
+                    }
+                  }}
+                  components={{
+                    DayContent: ({ date, ...props }) => {
+                      const isBooked = datesWithEvents.some(d => 
+                        d.getDate() === date.getDate() &&
+                        d.getMonth() === date.getMonth() &&
+                        d.getFullYear() === date.getFullYear()
+                      );
+                      
+                      return (
+                        <div 
+                          {...props}
+                          className={cn(
+                            "relative flex h-9 w-9 items-center justify-center",
+                            isBooked && "font-bold"
+                          )}
+                        >
+                          {date.getDate()}
+                          {isBooked && (
+                            <div 
+                              className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
+                                calendarType === "slaughter" ? "bg-red-600" : "bg-blue-600"
+                              }`}
+                            />
+                          )}
+                        </div>
+                      );
+                    },
+                  }}
+                />
+              )}
               
               <div className="mt-4 flex items-center gap-4">
                 <div className="flex items-center gap-1">
@@ -172,21 +186,25 @@ const CalendarView = () => {
               </div>
             </CardHeader>
             <CardContent>
-              {selectedDateEvents.length > 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center h-[200px]">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : selectedDateEvents.length > 0 ? (
                 <div className="space-y-4">
                   {selectedDateEvents.map((event) => (
                     <div key={event.id} className="rounded-lg border p-4">
                       <div className="flex flex-col sm:flex-row justify-between mb-2">
                         <div>
                           <h3 className="font-semibold">
-                            {calendarType === "slaughter" ? "Slaughter Event" : "Collection Event"}
+                            {event.type === "slaughter" ? "Slaughter Event" : "Collection Event"}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            {format(event.date, "PPP")} at {format(event.date, "p")}
+                            {format(parseISO(event.date), "PPP")} at {format(parseISO(event.date), "p")}
                           </p>
                         </div>
-                        <Badge className={calendarType === "slaughter" ? "bg-red-600" : "bg-blue-600"}>
-                          {calendarType === "slaughter" ? "Slaughter" : "Collection"}
+                        <Badge className={event.type === "slaughter" ? "bg-red-600" : "bg-blue-600"}>
+                          {event.type === "slaughter" ? "Slaughter" : "Collection"}
                         </Badge>
                       </div>
                       
@@ -212,7 +230,7 @@ const CalendarView = () => {
                           className="w-full sm:w-auto"
                           size="sm"
                         >
-                          {calendarType === "slaughter" ? "View Collection Details" : "View Slaughter Details"}
+                          {event.type === "slaughter" ? "View Collection Details" : "View Slaughter Details"}
                           <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                       </div>

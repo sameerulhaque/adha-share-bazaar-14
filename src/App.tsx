@@ -16,6 +16,9 @@ import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Cart from "./pages/Cart";
 import Calendar from "./pages/Calendar";
+import Profile from "./pages/Profile";
+import AnimalManagement from "./pages/admin/AnimalManagement";
+import BookingManagement from "./pages/admin/BookingManagement";
 import { CartProvider } from "./contexts/CartContext";
 
 const queryClient = new QueryClient();
@@ -37,8 +40,11 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/admin/animals" element={<AnimalManagement />} />
+              <Route path="/admin/bookings" element={<BookingManagement />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
