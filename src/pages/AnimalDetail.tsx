@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -106,6 +107,12 @@ const AnimalDetail = () => {
   
   const availableShares = animal.remainingShares - sharesInCart;
 
+  // Helper function to safely capitalize a string
+  const capitalize = (str: string | undefined) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  };
+
   return (
     <div className="container px-4 sm:px-8 py-8">
       <div className="flex flex-col md:flex-row gap-8">
@@ -145,7 +152,7 @@ const AnimalDetail = () => {
           <h1 className="text-3xl font-bold mb-2">{animal.name}</h1>
           <div className="flex items-center gap-2 mb-4">
             <span className="bg-brand-100 text-brand-800 text-sm font-medium px-2.5 py-0.5 rounded">
-              {animal.category.charAt(0).toUpperCase() + animal.category.slice(1)}
+              {capitalize(animal.category)}
             </span>
             <span className="bg-secondary text-secondary-foreground text-sm font-medium px-2.5 py-0.5 rounded">
               {availableShares} {availableShares === 1 ? "share" : "shares"} available
@@ -345,7 +352,7 @@ const AnimalDetail = () => {
               </div>
               <div>
                 <h4 className="font-medium">Category</h4>
-                <p className="text-muted-foreground">{animal.category.charAt(0).toUpperCase() + animal.category.slice(1)}</p>
+                <p className="text-muted-foreground">{capitalize(animal.category)}</p>
               </div>
               <div>
                 <h4 className="font-medium">Total Shares</h4>
