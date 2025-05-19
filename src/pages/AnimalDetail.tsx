@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Info, Check } from "lucide-react";
+import { Info, Check, ShoppingCart } from "lucide-react";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "@/hooks/use-toast";
 
 // Mock data - will be replaced with Supabase fetching
 const mockAnimals = [
@@ -64,9 +65,11 @@ const mockAnimals = [
 
 const AnimalDetail = () => {
   const { id } = useParams();
+  const { addToCart, items } = useCart();
   const [selectedImage, setSelectedImage] = useState(0);
   const [shareCount, setShareCount] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("online");
+  const [addingToCart, setAddingToCart] = useState(false);
   
   // Find the animal based on ID from the URL
   const animal = mockAnimals.find(a => a.id === id);
@@ -91,6 +94,36 @@ const AnimalDetail = () => {
       setShareCount(value);
     }
   };
+
+  const handleAddToCart = () => {
+    setAddingToCart(true);
+    
+    // Add item to cart
+    addToCart({
+      animalId: animal.id,
+      name: animal.name,
+      category: animal.category,
+      imageUrl: animal.imageUrl,
+      sharePrice: animal.pricePerShare,
+      shares: shareCount,
+      totalPrice: totalPrice
+    });
+    
+    // Show success toast
+    toast({
+      title: "Added to cart",
+      description: `${shareCount} ${shareCount > 1 ? 'shares' : 'share'} of ${animal.name} added to your cart.`,
+    });
+    
+    setAddingToCart(false);
+  };
+
+  // Check how many shares of this animal are already in the cart
+  const sharesInCart = items
+    .filter(item => item.animalId === animal.id)
+    .reduce((total, item) => total + item.shares, 0);
+  
+  const availableShares = animal.remainingShares - sharesInCart;
 
   return (
     <div className="container px-4 sm:px-8 py-8">
@@ -132,8 +165,13 @@ const AnimalDetail = () => {
               {animal.category.charAt(0).toUpperCase() + animal.category.slice(1)}
             </span>
             <span className="bg-secondary text-secondary-foreground text-sm font-medium px-2.5 py-0.5 rounded">
-              {animal.remainingShares} shares available
+              {availableShares} {availableShares === 1 ? "share" : "shares"} available
             </span>
+            {sharesInCart > 0 && (
+              <span className="bg-brand-600 text-white text-sm font-medium px-2.5 py-0.5 rounded">
+                {sharesInCart} in cart
+              </span>
+            )}
           </div>
           
           <div className="flex items-baseline gap-2 mb-6">
@@ -212,7 +250,7 @@ const AnimalDetail = () => {
                       id="shares"
                       type="number"
                       min={1}
-                      max={animal.remainingShares}
+                      max={availableShares}
                       value={shareCount}
                       onChange={handleShareCountChange}
                       className="max-w-16 text-center"
@@ -221,8 +259,8 @@ const AnimalDetail = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => shareCount < animal.remainingShares && setShareCount(shareCount + 1)}
-                      disabled={shareCount >= animal.remainingShares}
+                      onClick={() => shareCount < availableShares && setShareCount(shareCount + 1)}
+                      disabled={shareCount >= availableShares}
                     >
                       +
                     </Button>
@@ -258,11 +296,23 @@ const AnimalDetail = () => {
                     <span className="text-lg font-bold">₹{totalPrice.toLocaleString()}</span>
                   </div>
                   
-                  <Button asChild className="w-full bg-brand-600 hover:bg-brand-700">
-                    <Link to={`/booking/${animal.id}`} state={{ shareCount, totalPrice, paymentMethod }}>
-                      Book Now
-                    </Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleAddToCart}
+                      className="flex-1 bg-brand-600 hover:bg-brand-700"
+                      disabled={addingToCart || availableShares === 0}
+                    >
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      {addingToCart ? "Adding..." : "Add to Cart"}
+                    </Button>
+                    
+                    <Button asChild className="flex-1 bg-brand-600 hover:bg-brand-700">
+                      <Link to="/cart">
+                        View Cart
+                      </Link>
+                    </Button>
+                  </div>
                   
                   <div className="mt-2 flex items-start gap-1 text-xs text-muted-foreground">
                     <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
