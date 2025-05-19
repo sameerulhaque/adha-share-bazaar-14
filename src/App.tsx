@@ -15,6 +15,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import Cart from "./pages/Cart";
+import Calendar from "./pages/Calendar";
 import { CartProvider } from "./contexts/CartContext";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/animals" element={<AnimalListing />} />
               <Route path="/animal/:id" element={<AnimalDetail />} />
               <Route path="/cart" element={<Cart />} />
+              <Route path="/calendar" element={<Calendar />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<Dashboard />} />

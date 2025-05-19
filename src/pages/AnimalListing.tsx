@@ -5,8 +5,11 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Search, Loader } from "lucide-react";
 import { animalService, Animal } from "@/services/animalService";
+
+const ITEMS_PER_PAGE = 6;
 
 const AnimalListing = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -15,6 +18,9 @@ const AnimalListing = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [filteredAnimals, setFilteredAnimals] = useState<Animal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   
   // Fetch animals from API service
   useEffect(() => {
@@ -61,7 +67,38 @@ const AnimalListing = () => {
     }
     
     setFilteredAnimals(result);
+    setTotalPages(Math.ceil(result.length / ITEMS_PER_PAGE));
+    setCurrentPage(1); // Reset to first page when filters change
   }, [selectedCategory, priceRange, searchQuery, animals]);
+
+  // Get current page items
+  const getCurrentPageItems = () => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredAnimals.slice(0, endIndex);
+  };
+
+  const handleLoadMore = () => {
+    if (currentPage < totalPages) {
+      setLoadMoreLoading(true);
+      // Simulate network delay for better UX
+      setTimeout(() => {
+        setCurrentPage(currentPage + 1);
+        setLoadMoreLoading(false);
+      }, 500);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      // Scroll to top of the listing
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  };
 
   return (
     <div className="container px-4 sm:px-8 py-8">
@@ -155,21 +192,79 @@ const AnimalListing = () => {
         </TabsList>
         
         <TabsContent value="all" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} loading={loading} />
+          <AnimalGrid animals={getCurrentPageItems()} loading={loading} />
         </TabsContent>
         <TabsContent value="cow" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} loading={loading} />
+          <AnimalGrid animals={getCurrentPageItems()} loading={loading} />
         </TabsContent>
         <TabsContent value="goat" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} loading={loading} />
+          <AnimalGrid animals={getCurrentPageItems()} loading={loading} />
         </TabsContent>
         <TabsContent value="sheep" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} loading={loading} />
+          <AnimalGrid animals={getCurrentPageItems()} loading={loading} />
         </TabsContent>
         <TabsContent value="camel" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} loading={loading} />
+          <AnimalGrid animals={getCurrentPageItems()} loading={loading} />
         </TabsContent>
       </Tabs>
+      
+      {/* Pagination */}
+      {!loading && filteredAnimals.length > 0 && (
+        <div className="mt-8 flex flex-col items-center gap-6">
+          {currentPage < totalPages && (
+            <Button 
+              onClick={handleLoadMore} 
+              variant="outline" 
+              className="w-full md:w-1/3"
+              disabled={loadMoreLoading}
+            >
+              {loadMoreLoading ? (
+                <>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                "Load More Animals"
+              )}
+            </Button>
+          )}
+          
+          {/* Pagination controls */}
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    onClick={() => handlePageChange(page)}
+                    isActive={currentPage === page}
+                    className="cursor-pointer"
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+          
+          <p className="text-sm text-muted-foreground">
+            Showing {getCurrentPageItems().length} of {filteredAnimals.length} animals
+          </p>
+        </div>
+      )}
     </div>
   );
 };
