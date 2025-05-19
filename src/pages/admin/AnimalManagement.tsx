@@ -34,7 +34,8 @@ const animalSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
 });
 
-type AnimalFormValues = z.infer<typeof animalSchema>;
+// Define a new type that matches exactly what animalService.addAnimal expects
+type AnimalFormValues = Required<Omit<Animal, 'id' | 'bookedShares' | 'remainingShares' | 'additionalImages' | 'features'>>;
 
 const AnimalManagement = () => {
   const [page, setPage] = useState(1);

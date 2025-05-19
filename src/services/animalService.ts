@@ -1,4 +1,3 @@
-
 import { ApiService } from '@/lib/axios';
 
 // Define the animal type for better TypeScript support
@@ -19,6 +18,12 @@ export interface Animal {
   description: string;
   features?: string[];
 }
+
+// Define what's required for creating a new animal
+export type CreateAnimalDto = Omit<Animal, 'id' | 'bookedShares' | 'remainingShares' | 'additionalImages' | 'features'> & {
+  additionalImages?: string[];
+  features?: string[];
+};
 
 // Mock data - same as currently being used
 const mockAnimals: Animal[] = [
@@ -240,7 +245,7 @@ class AnimalService extends ApiService<Animal> {
   }
 
   // Add new animal
-  async addAnimal(animalData: Omit<Animal, 'id' | 'bookedShares' | 'remainingShares'>): Promise<Animal> {
+  async addAnimal(animalData: CreateAnimalDto): Promise<Animal> {
     try {
       // Calculate remainingShares based on totalShares
       const animal = {
