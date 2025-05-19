@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,70 +9,51 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Info, Check, ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "@/hooks/use-toast";
-
-// Mock data - will be replaced with Supabase fetching
-const mockAnimals = [
-  {
-    id: "1",
-    name: "Premium Cow",
-    category: "cow",
-    breed: "Sahiwal",
-    weight: 450,
-    age: "3 years",
-    price: 42000,
-    pricePerShare: 6000,
-    totalShares: 7,
-    bookedShares: 3,
-    remainingShares: 4,
-    imageUrl: "https://images.unsplash.com/photo-1493962853295-0fd70327578a?auto=format&fit=crop&w=600&h=400",
-    additionalImages: [
-      "https://images.unsplash.com/photo-1493962853295-0fd70327578a?auto=format&fit=crop&w=600&h=400",
-      "https://images.unsplash.com/photo-1465379944081-7f47de8d74ac?auto=format&fit=crop&w=600&h=400",
-    ],
-    description: "This premium cow is raised with care on natural feed, making it an ideal choice for Qurbani. The animal is healthy and meets all Islamic requirements for sacrifice.",
-    features: [
-      "Certified healthy by veterinarian",
-      "Fed on natural, organic feed",
-      "Raised in ethical conditions",
-      "Meets all religious requirements"
-    ]
-  },
-  {
-    id: "2",
-    name: "Large Goat",
-    category: "goat",
-    breed: "Boer",
-    weight: 75,
-    age: "1.5 years",
-    price: 15000,
-    pricePerShare: 15000,
-    totalShares: 1,
-    bookedShares: 0,
-    remainingShares: 1,
-    imageUrl: "https://images.unsplash.com/photo-1469041797191-50ace28483c3?auto=format&fit=crop&w=600&h=400",
-    additionalImages: [
-      "https://images.unsplash.com/photo-1469041797191-50ace28483c3?auto=format&fit=crop&w=600&h=400"
-    ],
-    description: "This large, healthy goat is perfect for individual Qurbani. Raised with care on a trusted farm, it meets all requirements for sacrifice.",
-    features: [
-      "Certified healthy by veterinarian",
-      "Fed on natural, organic feed",
-      "Raised in ethical conditions",
-      "Meets all religious requirements"
-    ]
-  }
-];
+import { animalService, Animal } from "@/services/animalService";
 
 const AnimalDetail = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const { addToCart, items } = useCart();
   const [selectedImage, setSelectedImage] = useState(0);
   const [shareCount, setShareCount] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("online");
   const [addingToCart, setAddingToCart] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [animal, setAnimal] = useState<Animal | null>(null);
   
-  // Find the animal based on ID from the URL
-  const animal = mockAnimals.find(a => a.id === id);
+  // Fetch the animal details based on ID
+  useEffect(() => {
+    const fetchAnimal = async () => {
+      if (!id) return;
+      
+      setLoading(true);
+      try {
+        const data = await animalService.getAnimalById(id);
+        if (data) {
+          setAnimal(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch animal details:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load animal details. Using cached data if available.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAnimal();
+  }, [id]);
+  
+  if (loading) {
+    return (
+      <div className="container px-4 sm:px-8 py-32 text-center">
+        <h2 className="text-2xl font-semibold mb-4">Loading Animal Details...</h2>
+      </div>
+    );
+  }
   
   if (!animal) {
     return (
@@ -132,29 +113,31 @@ const AnimalDetail = () => {
         <div className="w-full md:w-1/2">
           <div className="rounded-lg overflow-hidden mb-4 border">
             <img
-              src={animal.additionalImages[selectedImage]}
+              src={animal.additionalImages ? animal.additionalImages[selectedImage] : animal.imageUrl}
               alt={animal.name}
               className="w-full h-auto object-cover aspect-video"
             />
           </div>
           
-          <div className="flex space-x-2">
-            {animal.additionalImages.map((image, index) => (
-              <div
-                key={index}
-                className={`border overflow-hidden rounded cursor-pointer w-20 h-20 ${
-                  selectedImage === index ? "ring-2 ring-brand-500" : ""
-                }`}
-                onClick={() => setSelectedImage(index)}
-              >
-                <img
-                  src={image}
-                  alt={`${animal.name} ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-          </div>
+          {animal.additionalImages && animal.additionalImages.length > 0 && (
+            <div className="flex space-x-2">
+              {animal.additionalImages.map((image, index) => (
+                <div
+                  key={index}
+                  className={`border overflow-hidden rounded cursor-pointer w-20 h-20 ${
+                    selectedImage === index ? "ring-2 ring-brand-500" : ""
+                  }`}
+                  onClick={() => setSelectedImage(index)}
+                >
+                  <img
+                    src={image}
+                    alt={`${animal.name} ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         
         {/* Right Column - Details */}
@@ -207,7 +190,7 @@ const AnimalDetail = () => {
             </div>
             <div>
               <h3 className="text-sm text-muted-foreground">Age</h3>
-              <p className="font-medium">{animal.age}</p>
+              <p className="font-medium">{animal.age || "Not specified"}</p>
             </div>
             <div>
               <h3 className="text-sm text-muted-foreground">Total Price</h3>
@@ -219,14 +202,16 @@ const AnimalDetail = () => {
             <p className="text-sm">{animal.description}</p>
           </div>
           
-          <div className="space-y-2 mb-6">
-            {animal.features.map((feature, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-brand-600" />
-                <span className="text-sm">{feature}</span>
-              </div>
-            ))}
-          </div>
+          {animal.features && animal.features.length > 0 && (
+            <div className="space-y-2 mb-6">
+              {animal.features.map((feature, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-brand-600" />
+                  <span className="text-sm">{feature}</span>
+                </div>
+              ))}
+            </div>
+          )}
           
           <Card className="mb-6">
             <CardHeader className="pb-3">
@@ -356,7 +341,7 @@ const AnimalDetail = () => {
               </div>
               <div>
                 <h4 className="font-medium">Age</h4>
-                <p className="text-muted-foreground">{animal.age}</p>
+                <p className="text-muted-foreground">{animal.age || "Not specified"}</p>
               </div>
               <div>
                 <h4 className="font-medium">Category</h4>

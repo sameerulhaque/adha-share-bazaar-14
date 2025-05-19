@@ -7,98 +7,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
-
-// Mock data - will be replaced with Supabase fetching
-const mockAnimals = [
-  {
-    id: "1",
-    name: "Premium Cow",
-    category: "cow",
-    breed: "Sahiwal",
-    weight: 450,
-    price: 42000,
-    totalShares: 7,
-    bookedShares: 3,
-    remainingShares: 4,
-    imageUrl: "https://images.unsplash.com/photo-1493962853295-0fd70327578a?auto=format&fit=crop&w=600&h=400",
-    description: "Healthy, well-fed cow suitable for Qurbani."
-  },
-  {
-    id: "2",
-    name: "Large Goat",
-    category: "goat",
-    breed: "Boer",
-    weight: 75,
-    price: 15000,
-    totalShares: 1,
-    bookedShares: 0,
-    remainingShares: 1,
-    imageUrl: "https://images.unsplash.com/photo-1469041797191-50ace28483c3?auto=format&fit=crop&w=600&h=400",
-    description: "Well-raised goat perfect for individual Qurbani."
-  },
-  {
-    id: "3",
-    name: "Medium Cow",
-    category: "cow",
-    breed: "Nili-Ravi",
-    weight: 380,
-    price: 35000,
-    totalShares: 7,
-    bookedShares: 5,
-    remainingShares: 2,
-    imageUrl: "https://images.unsplash.com/photo-1465379944081-7f47de8d74ac?auto=format&fit=crop&w=600&h=400",
-    description: "Healthy cow raised on natural feed."
-  },
-  {
-    id: "4",
-    name: "Premium Goat",
-    category: "goat",
-    breed: "Beetal",
-    weight: 90,
-    price: 20000,
-    totalShares: 1,
-    bookedShares: 0,
-    remainingShares: 1,
-    imageUrl: "https://images.unsplash.com/photo-1469041797191-50ace28483c3?auto=format&fit=crop&w=600&h=400",
-    description: "Large, healthy goat suitable for Qurbani."
-  },
-  {
-    id: "5",
-    name: "Large Cow",
-    category: "cow",
-    breed: "Holstein Friesian",
-    weight: 500,
-    price: 49000,
-    totalShares: 7,
-    bookedShares: 2,
-    remainingShares: 5,
-    imageUrl: "https://images.unsplash.com/photo-1493962853295-0fd70327578a?auto=format&fit=crop&w=600&h=400",
-    description: "Premium quality cow raised with care."
-  },
-  {
-    id: "6",
-    name: "Standard Goat",
-    category: "goat",
-    breed: "Jamunapari",
-    weight: 65,
-    price: 12000,
-    totalShares: 1,
-    bookedShares: 0,
-    remainingShares: 1,
-    imageUrl: "https://images.unsplash.com/photo-1469041797191-50ace28483c3?auto=format&fit=crop&w=600&h=400",
-    description: "Healthy goat for individual sacrifice."
-  }
-];
+import { animalService, Animal } from "@/services/animalService";
 
 const AnimalListing = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [priceRange, setPriceRange] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredAnimals, setFilteredAnimals] = useState(mockAnimals);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [filteredAnimals, setFilteredAnimals] = useState<Animal[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch animals from API service
+  useEffect(() => {
+    const fetchAnimals = async () => {
+      setLoading(true);
+      try {
+        const data = await animalService.getAllAnimals();
+        setAnimals(data);
+        setFilteredAnimals(data);
+      } catch (error) {
+        console.error("Failed to fetch animals:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAnimals();
+  }, []);
   
   // Filter animals based on selected filters
   useEffect(() => {
-    let result = mockAnimals;
+    let result = animals;
     
     // Filter by category
     if (selectedCategory !== "all") {
@@ -108,7 +47,7 @@ const AnimalListing = () => {
     // Filter by price range
     if (priceRange) {
       const [min, max] = priceRange.split("-").map(Number);
-      result = result.filter(animal => animal.price >= min && animal.price <= max);
+      result = result.filter(animal => animal.price >= min && (max ? animal.price <= max : true));
     }
     
     // Filter by search query
@@ -123,7 +62,7 @@ const AnimalListing = () => {
     }
     
     setFilteredAnimals(result);
-  }, [selectedCategory, priceRange, searchQuery]);
+  }, [selectedCategory, priceRange, searchQuery, animals]);
 
   return (
     <div className="container px-4 sm:px-8 py-8">
@@ -185,7 +124,7 @@ const AnimalListing = () => {
                 <SelectValue placeholder="Select price range" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="any">Any Price</SelectItem>
+                <SelectItem value="">Any Price</SelectItem>
                 <SelectItem value="0-15000">Under 15,000</SelectItem>
                 <SelectItem value="15000-25000">15,000 - 25,000</SelectItem>
                 <SelectItem value="25000-40000">25,000 - 40,000</SelectItem>
@@ -217,26 +156,34 @@ const AnimalListing = () => {
         </TabsList>
         
         <TabsContent value="all" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} />
+          <AnimalGrid animals={filteredAnimals} loading={loading} />
         </TabsContent>
         <TabsContent value="cow" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} />
+          <AnimalGrid animals={filteredAnimals} loading={loading} />
         </TabsContent>
         <TabsContent value="goat" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} />
+          <AnimalGrid animals={filteredAnimals} loading={loading} />
         </TabsContent>
         <TabsContent value="sheep" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} />
+          <AnimalGrid animals={filteredAnimals} loading={loading} />
         </TabsContent>
         <TabsContent value="camel" className="mt-6">
-          <AnimalGrid animals={filteredAnimals} />
+          <AnimalGrid animals={filteredAnimals} loading={loading} />
         </TabsContent>
       </Tabs>
     </div>
   );
 };
 
-const AnimalGrid = ({ animals }: { animals: any[] }) => {
+const AnimalGrid = ({ animals, loading }: { animals: Animal[], loading: boolean }) => {
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <h3 className="text-xl font-medium">Loading animals...</h3>
+      </div>
+    );
+  }
+  
   if (animals.length === 0) {
     return (
       <div className="text-center py-12">
