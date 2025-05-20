@@ -1,83 +1,99 @@
 
-import { useState, useEffect } from "react";
-import { format, parseISO, isSameDay, addDays } from "date-fns";
+import { useState, useCallback } from "react";
+import { format, parseISO, isSameDay, addDays, setHours, setMinutes, getHours, getMinutes } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, ArrowRight, Clock } from "lucide-react";
+import { CalendarIcon, ArrowLeft, ArrowRight, Clock } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { calendarService, CalendarEvent, mockSlaughterEvents, mockCollectionEvents } from "@/services/calendarService";
+import { calendarService, CalendarEvent } from "@/services/calendarService";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Generate time slots from 8:00 AM to 6:00 PM with 30-minute intervals
+const generateTimeSlots = () => {
+  const slots = [];
+  const startHour = 8;
+  const endHour = 18;
+  
+  for (let hour = startHour; hour < endHour; hour++) {
+    slots.push({ hour, minute: 0 });
+    slots.push({ hour, minute: 30 });
+  }
+  
+  return slots;
+};
+
+const timeSlots = generateTimeSlots();
 
 const CalendarView = () => {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const today = new Date();
+  const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [calendarType, setCalendarType] = useState<"slaughter" | "collection">("slaughter");
   
   // Fetch events based on calendar type
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['calendar', calendarType],
     queryFn: () => calendarService.getEventsByType(calendarType),
-    onSettled: (data, error) => {
-      if (error) {
-        toast.error("Failed to load calendar events", {
-          description: "Using cached data instead.",
-        });
-      }
+    onError: () => {
+      toast.error("Failed to load calendar events", {
+        description: "Using cached data instead.",
+      });
     }
   });
 
   // Get events for the selected date
-  const getEventsForDate = (date: Date | undefined) => {
+  const getEventsForDate = useCallback((date: Date | undefined) => {
     if (!date) return [];
     
-    // Use mockData as fallback if no events returned from API
-    const eventsToUse = events.length ? events : 
-      (calendarType === 'slaughter' ? mockSlaughterEvents : mockCollectionEvents);
-    
-    return eventsToUse.filter(event => {
+    return events.filter(event => {
       const eventDate = parseISO(event.date);
       return isSameDay(eventDate, date);
     });
-  };
+  }, [events]);
   
   // Generate all dates that have events
-  const getDatesWithEvents = () => {
-    // Use mockData as fallback if no events returned from API
-    const eventsToUse = events.length ? events : 
-      (calendarType === 'slaughter' ? mockSlaughterEvents : mockCollectionEvents);
-    
-    return eventsToUse.map(event => parseISO(event.date));
-  };
-  
-  const selectedDateEvents = getEventsForDate(date);
+  const getDatesWithEvents = useCallback(() => {
+    return events.map(event => parseISO(event.date));
+  }, [events]);
+
+  const selectedDateEvents = getEventsForDate(selectedDate);
   const datesWithEvents = getDatesWithEvents();
 
-  // Group events by time slot
-  const groupEventsByTimeSlot = (events: CalendarEvent[]) => {
-    const grouped = new Map<string, CalendarEvent[]>();
-    
-    events.forEach(event => {
-      const timeSlot = event.timeSlot || 'Unscheduled';
-      if (!grouped.has(timeSlot)) {
-        grouped.set(timeSlot, []);
-      }
-      grouped.get(timeSlot)?.push(event);
-    });
-    
-    // Convert map to array and sort by time
-    return Array.from(grouped.entries()).sort((a, b) => {
-      // Handle 'Unscheduled' case
-      if (a[0] === 'Unscheduled') return 1;
-      if (b[0] === 'Unscheduled') return -1;
-      return a[0].localeCompare(b[0]);
+  // Function to navigate to the next or previous day
+  const navigateDay = (direction: 'prev' | 'next') => {
+    setSelectedDate(current => {
+      return direction === 'next' ? addDays(current, 1) : addDays(current, -1);
     });
   };
 
-  const groupedEvents = groupEventsByTimeSlot(selectedDateEvents);
+  // Convert time string to date object for positioning
+  const timeToDate = (timeString: string, baseDate: Date) => {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return setMinutes(setHours(baseDate, hours), minutes);
+  };
+
+  // Calculate position and height for an event
+  const calculateEventPosition = (event: CalendarEvent, baseDate: Date) => {
+    const startTime = timeToDate(event.startTime, baseDate);
+    const endTime = timeToDate(event.endTime, baseDate);
+    
+    const dayStart = setHours(setMinutes(baseDate, 0), 8); // 8:00 AM
+    const totalMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+    
+    const startMinutesSinceDayStart = 
+      (getHours(startTime) - getHours(dayStart)) * 60 + 
+      (getMinutes(startTime) - getMinutes(dayStart));
+    
+    // Each 30-min slot is 60px high, plus 1px for the border
+    const posFromTop = (startMinutesSinceDayStart / 30) * 61;
+    const height = (totalMinutes / 30) * 61 - 2; // -2 for border
+    
+    return { top: posFromTop, height };
+  };
 
   return (
     <div className="container px-4 sm:px-8 py-8">
@@ -86,201 +102,213 @@ const CalendarView = () => {
         View and plan slaughter and meat collection schedules for your Qurbani shares.
       </p>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Date</CardTitle>
-              <CardDescription>
-                View scheduled events for slaughter and collection.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs 
-                defaultValue="slaughter" 
-                className="mb-4"
-                onValueChange={(value) => setCalendarType(value as "slaughter" | "collection")}
-              >
-                <TabsList className="w-full">
-                  <TabsTrigger value="slaughter" className="flex-1">Slaughter</TabsTrigger>
-                  <TabsTrigger value="collection" className="flex-1">Collection</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              
-              {isLoading ? (
-                <div className="flex items-center justify-center h-[350px]">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              ) : (
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  className="rounded-md border pointer-events-auto"
-                  modifiers={{
-                    booked: datesWithEvents,
-                  }}
-                  modifiersStyles={{
-                    booked: { 
-                      backgroundColor: calendarType === "slaughter" ? "#FECACA" : "#BFDBFE",
-                      color: calendarType === "slaughter" ? "#991B1B" : "#1E40AF",
-                      fontWeight: "bold"
-                    }
-                  }}
-                  components={{
-                    DayContent: ({ date, ...props }) => {
-                      const isBooked = datesWithEvents.some(d => isSameDay(d, date));
-                      
-                      return (
-                        <div 
-                          {...props}
-                          className={cn(
-                            "relative flex h-9 w-9 items-center justify-center",
-                            isBooked && "font-bold"
-                          )}
-                        >
-                          {date.getDate()}
-                          {isBooked && (
-                            <div 
-                              className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
-                                calendarType === "slaughter" ? "bg-red-600" : "bg-blue-600"
-                              }`}
-                            />
-                          )}
-                        </div>
-                      );
-                    },
-                  }}
-                />
-              )}
-              
-              <div className="mt-4 flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <div className="h-3 w-3 rounded-full bg-red-400"></div>
-                  <span className="text-sm">Slaughter</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="h-3 w-3 rounded-full bg-blue-400"></div>
-                  <span className="text-sm">Collection</span>
-                </div>
+      <div className="grid grid-cols-1 gap-8">
+        <Card className="col-span-1">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarIcon className="h-6 w-6" />
+                  {format(selectedDate, "EEEE, MMMM d, yyyy")}
+                </CardTitle>
+                <CardDescription>
+                  {calendarType === "slaughter" ? "Slaughter Schedule" : "Collection Schedule"}
+                </CardDescription>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>
-                    {calendarType === "slaughter" ? "Slaughter Schedule" : "Collection Schedule"}
-                  </CardTitle>
-                  <CardDescription>
-                    {date ? (
-                      `Events for ${format(date, "PPP")}`
-                    ) : (
-                      "Select a date to view events"
-                    )}
-                  </CardDescription>
-                </div>
+              
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateDay('prev')}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="sr-only">Previous Day</span>
+                </Button>
                 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="ml-auto h-8 gap-1">
-                      <CalendarIcon className="h-4 w-4 opacity-50" />
-                      <span>Jump to date</span>
+                    <Button variant="outline" size="sm">
+                      <CalendarIcon className="h-4 w-4 mr-1" />
+                      <span>Calendar</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="end">
+                  <PopoverContent className="w-auto p-0" align="end">
                     <Calendar
                       mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      initialFocus
-                      className="p-3"
+                      selected={selectedDate}
+                      onSelect={(date) => date && setSelectedDate(date)}
+                      className="rounded-md border pointer-events-auto"
+                      modifiers={{
+                        booked: datesWithEvents,
+                      }}
+                      modifiersStyles={{
+                        booked: { 
+                          backgroundColor: calendarType === "slaughter" ? "#FECACA" : "#BFDBFE",
+                          color: calendarType === "slaughter" ? "#991B1B" : "#1E40AF",
+                          fontWeight: "bold"
+                        }
+                      }}
+                      components={{
+                        DayContent: ({ date, ...props }) => {
+                          const isBooked = datesWithEvents.some(d => isSameDay(d, date));
+                          
+                          return (
+                            <div 
+                              {...props}
+                              className={cn(
+                                "relative flex h-9 w-9 items-center justify-center",
+                                isBooked && "font-bold"
+                              )}
+                            >
+                              {date.getDate()}
+                              {isBooked && (
+                                <div 
+                                  className={`absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full ${
+                                    calendarType === "slaughter" ? "bg-red-600" : "bg-blue-600"
+                                  }`}
+                                />
+                              )}
+                            </div>
+                          );
+                        },
+                      }}
                     />
                   </PopoverContent>
                 </Popover>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateDay('next')}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  <span className="sr-only">Next Day</span>
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center h-[200px]">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                </div>
-              ) : groupedEvents.length > 0 ? (
-                <div className="space-y-6">
-                  {groupedEvents.map(([timeSlot, timeSlotEvents]) => (
-                    <div key={timeSlot} className="rounded-lg border">
-                      <div className="bg-muted px-4 py-2 border-b flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <h3 className="font-medium">{timeSlot}</h3>
+            </div>
+
+            <Tabs 
+              value={calendarType}
+              className="mt-4"
+              onValueChange={(value) => setCalendarType(value as "slaughter" | "collection")}
+            >
+              <TabsList className="w-full sm:w-auto">
+                <TabsTrigger value="slaughter">Slaughter</TabsTrigger>
+                <TabsTrigger value="collection">Collection</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-[600px]">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="grid grid-cols-[60px_1fr] border rounded-lg">
+                  {/* Time column */}
+                  <div className="border-r">
+                    {timeSlots.map((slot, index) => (
+                      <div key={index} className="h-[60px] border-b flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">
+                          {format(setMinutes(setHours(selectedDate, slot.hour), slot.minute), 'h:mm a')}
+                        </span>
                       </div>
-                      
-                      <div className="divide-y">
-                        {timeSlotEvents.map((event) => (
-                          <div key={event.id} className="p-4">
-                            <div className="flex flex-col sm:flex-row justify-between mb-2">
-                              <div>
-                                <h3 className="font-semibold">
-                                  {event.type === "slaughter" ? "Slaughter Event" : "Collection Event"}
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                  {format(parseISO(event.date), "PPP")}
-                                </p>
-                              </div>
-                              <Badge className={event.type === "slaughter" ? "bg-red-600" : "bg-blue-600"}>
-                                {event.type === "slaughter" ? "Slaughter" : "Collection"}
-                              </Badge>
-                            </div>
-                            
-                            <div className="mt-4 space-y-2">
-                              <div>
-                                <h4 className="text-sm font-medium">Location</h4>
-                                <p>{event.location}</p>
+                    ))}
+                  </div>
+                  
+                  {/* Events column */}
+                  <div className="relative">
+                    {/* Grid Lines */}
+                    {timeSlots.map((_, index) => (
+                      <div key={index} className="h-[60px] border-b"></div>
+                    ))}
+
+                    {/* Events */}
+                    {selectedDateEvents.length > 0 ? (
+                      selectedDateEvents.map((event) => {
+                        const { top, height } = calculateEventPosition(event, selectedDate);
+                        
+                        return (
+                          <div
+                            key={event.id}
+                            className={cn(
+                              "absolute w-[95%] rounded-md p-2 border overflow-hidden",
+                              event.type === "slaughter" ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-200"
+                            )}
+                            style={{
+                              top: `${top}px`,
+                              height: `${height}px`,
+                              left: '2.5%'
+                            }}
+                          >
+                            <div className="flex flex-col h-full">
+                              <div className="flex justify-between">
+                                <span className="font-medium text-sm truncate">
+                                  {event.type === "slaughter" ? "Slaughter" : "Collection"}
+                                </span>
+                                <span className="text-xs">
+                                  {event.startTime} - {event.endTime}
+                                </span>
                               </div>
                               
-                              <div>
-                                <h4 className="text-sm font-medium">Animals</h4>
-                                <ul className="list-disc list-inside">
-                                  {event.animals.map((animal, index) => (
-                                    <li key={index} className="text-sm">{animal}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                            
-                            <div className="mt-4">
-                              <Button 
-                                variant="outline" 
-                                className="w-full sm:w-auto"
-                                size="sm"
-                              >
-                                {event.type === "slaughter" ? "View Collection Details" : "View Slaughter Details"}
-                                <ArrowRight className="ml-1 h-4 w-4" />
-                              </Button>
+                              {height > 70 && (
+                                <>
+                                  <p className="text-xs mt-1 line-clamp-1">{event.location}</p>
+                                  {height > 90 && (
+                                    <div className="text-xs mt-1">
+                                      {event.animals.map((animal, idx) => (
+                                        <Badge 
+                                          key={idx}
+                                          variant="outline" 
+                                          className="mr-1 mb-1"
+                                        >
+                                          {animal}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
+                                </>
+                              )}
                             </div>
                           </div>
-                        ))}
+                        );
+                      })
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center">
+                          <Clock className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
+                          <h3 className="mt-4 text-lg font-medium">No events scheduled</h3>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            There are no {calendarType} events scheduled for {format(selectedDate, "PPP")}.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground opacity-50" />
-                  <h3 className="mt-4 text-lg font-medium">No events scheduled</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {date
-                      ? `There are no ${calendarType} events scheduled for ${format(date, "PPP")}.`
-                      : "Select a date to view scheduled events."}
-                  </p>
+                
+                <div className="mt-6">
+                  <div className="flex flex-wrap gap-4">
+                    <Button variant="outline" size="sm">
+                      Add Event
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      Today
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      View Week
+                    </Button>
+                    <Button variant="outline" size="sm">
+                      Print Schedule
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
