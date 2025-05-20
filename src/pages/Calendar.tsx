@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isSameDay } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, ArrowRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { calendarService, CalendarEvent } from "@/services/calendarService";
+import { calendarService, CalendarEvent, mockSlaughterEvents, mockCollectionEvents } from "@/services/calendarService";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -21,36 +21,44 @@ const CalendarView = () => {
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar', calendarType],
     queryFn: () => calendarService.getEventsByType(calendarType),
+    onError: () => {
+      toast.error("Failed to load calendar events", {
+        description: "Using cached data instead.",
+      });
+      
+      // Return mock data directly in case of error
+      return calendarType === 'slaughter' ? mockSlaughterEvents : mockCollectionEvents;
+    }
   });
 
   // Show toast if there's an error
   useEffect(() => {
     if (error) {
-      toast.error("Failed to load calendar events", {
-        description: "Using cached data instead.",
-      });
       console.error("Calendar fetch error:", error);
     }
   }, [error]);
   
   // Get events for the selected date
   const getEventsForDate = (date: Date | undefined) => {
-    if (!date || !events.length) return [];
+    if (!date) return [];
     
-    return events.filter(event => {
+    // Use mockData as fallback if no events returned from API
+    const eventsToUse = events.length ? events : 
+      (calendarType === 'slaughter' ? mockSlaughterEvents : mockCollectionEvents);
+    
+    return eventsToUse.filter(event => {
       const eventDate = parseISO(event.date);
-      return (
-        eventDate.getDate() === date.getDate() &&
-        eventDate.getMonth() === date.getMonth() &&
-        eventDate.getFullYear() === date.getFullYear()
-      );
+      return isSameDay(eventDate, date);
     });
   };
   
   // Generate all dates that have events
   const getDatesWithEvents = () => {
-    if (!events.length) return [];
-    return events.map(event => parseISO(event.date));
+    // Use mockData as fallback if no events returned from API
+    const eventsToUse = events.length ? events : 
+      (calendarType === 'slaughter' ? mockSlaughterEvents : mockCollectionEvents);
+    
+    return eventsToUse.map(event => parseISO(event.date));
   };
   
   const selectedDateEvents = getEventsForDate(date);
@@ -106,11 +114,7 @@ const CalendarView = () => {
                   }}
                   components={{
                     DayContent: ({ date, ...props }) => {
-                      const isBooked = datesWithEvents.some(d => 
-                        d.getDate() === date.getDate() &&
-                        d.getMonth() === date.getMonth() &&
-                        d.getFullYear() === date.getFullYear()
-                      );
+                      const isBooked = datesWithEvents.some(d => isSameDay(d, date));
                       
                       return (
                         <div 
