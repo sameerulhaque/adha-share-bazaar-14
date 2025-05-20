@@ -1,12 +1,12 @@
 
 import { useState, useEffect } from "react";
-import { format, parseISO, isSameDay } from "date-fns";
+import { format, parseISO, isSameDay, addDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, ArrowRight } from "lucide-react";
+import { CalendarIcon, ArrowRight, Clock } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { calendarService, CalendarEvent, mockSlaughterEvents, mockCollectionEvents } from "@/services/calendarService";
@@ -18,26 +18,18 @@ const CalendarView = () => {
   const [calendarType, setCalendarType] = useState<"slaughter" | "collection">("slaughter");
   
   // Fetch events based on calendar type
-  const { data: events = [], isLoading, error } = useQuery({
+  const { data: events = [], isLoading } = useQuery({
     queryKey: ['calendar', calendarType],
     queryFn: () => calendarService.getEventsByType(calendarType),
-    onError: () => {
-      toast.error("Failed to load calendar events", {
-        description: "Using cached data instead.",
-      });
-      
-      // Return mock data directly in case of error
-      return calendarType === 'slaughter' ? mockSlaughterEvents : mockCollectionEvents;
+    onSettled: (data, error) => {
+      if (error) {
+        toast.error("Failed to load calendar events", {
+          description: "Using cached data instead.",
+        });
+      }
     }
   });
 
-  // Show toast if there's an error
-  useEffect(() => {
-    if (error) {
-      console.error("Calendar fetch error:", error);
-    }
-  }, [error]);
-  
   // Get events for the selected date
   const getEventsForDate = (date: Date | undefined) => {
     if (!date) return [];
@@ -63,6 +55,29 @@ const CalendarView = () => {
   
   const selectedDateEvents = getEventsForDate(date);
   const datesWithEvents = getDatesWithEvents();
+
+  // Group events by time slot
+  const groupEventsByTimeSlot = (events: CalendarEvent[]) => {
+    const grouped = new Map<string, CalendarEvent[]>();
+    
+    events.forEach(event => {
+      const timeSlot = event.timeSlot || 'Unscheduled';
+      if (!grouped.has(timeSlot)) {
+        grouped.set(timeSlot, []);
+      }
+      grouped.get(timeSlot)?.push(event);
+    });
+    
+    // Convert map to array and sort by time
+    return Array.from(grouped.entries()).sort((a, b) => {
+      // Handle 'Unscheduled' case
+      if (a[0] === 'Unscheduled') return 1;
+      if (b[0] === 'Unscheduled') return -1;
+      return a[0].localeCompare(b[0]);
+    });
+  };
+
+  const groupedEvents = groupEventsByTimeSlot(selectedDateEvents);
 
   return (
     <div className="container px-4 sm:px-8 py-8">
@@ -194,49 +209,60 @@ const CalendarView = () => {
                 <div className="flex items-center justify-center h-[200px]">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>
-              ) : selectedDateEvents.length > 0 ? (
-                <div className="space-y-4">
-                  {selectedDateEvents.map((event) => (
-                    <div key={event.id} className="rounded-lg border p-4">
-                      <div className="flex flex-col sm:flex-row justify-between mb-2">
-                        <div>
-                          <h3 className="font-semibold">
-                            {event.type === "slaughter" ? "Slaughter Event" : "Collection Event"}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            {format(parseISO(event.date), "PPP")} at {format(parseISO(event.date), "p")}
-                          </p>
-                        </div>
-                        <Badge className={event.type === "slaughter" ? "bg-red-600" : "bg-blue-600"}>
-                          {event.type === "slaughter" ? "Slaughter" : "Collection"}
-                        </Badge>
+              ) : groupedEvents.length > 0 ? (
+                <div className="space-y-6">
+                  {groupedEvents.map(([timeSlot, timeSlotEvents]) => (
+                    <div key={timeSlot} className="rounded-lg border">
+                      <div className="bg-muted px-4 py-2 border-b flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <h3 className="font-medium">{timeSlot}</h3>
                       </div>
                       
-                      <div className="mt-4 space-y-2">
-                        <div>
-                          <h4 className="text-sm font-medium">Location</h4>
-                          <p>{event.location}</p>
-                        </div>
-                        
-                        <div>
-                          <h4 className="text-sm font-medium">Animals</h4>
-                          <ul className="list-disc list-inside">
-                            {event.animals.map((animal, index) => (
-                              <li key={index} className="text-sm">{animal}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <Button 
-                          variant="outline" 
-                          className="w-full sm:w-auto"
-                          size="sm"
-                        >
-                          {event.type === "slaughter" ? "View Collection Details" : "View Slaughter Details"}
-                          <ArrowRight className="ml-1 h-4 w-4" />
-                        </Button>
+                      <div className="divide-y">
+                        {timeSlotEvents.map((event) => (
+                          <div key={event.id} className="p-4">
+                            <div className="flex flex-col sm:flex-row justify-between mb-2">
+                              <div>
+                                <h3 className="font-semibold">
+                                  {event.type === "slaughter" ? "Slaughter Event" : "Collection Event"}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {format(parseISO(event.date), "PPP")}
+                                </p>
+                              </div>
+                              <Badge className={event.type === "slaughter" ? "bg-red-600" : "bg-blue-600"}>
+                                {event.type === "slaughter" ? "Slaughter" : "Collection"}
+                              </Badge>
+                            </div>
+                            
+                            <div className="mt-4 space-y-2">
+                              <div>
+                                <h4 className="text-sm font-medium">Location</h4>
+                                <p>{event.location}</p>
+                              </div>
+                              
+                              <div>
+                                <h4 className="text-sm font-medium">Animals</h4>
+                                <ul className="list-disc list-inside">
+                                  {event.animals.map((animal, index) => (
+                                    <li key={index} className="text-sm">{animal}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <Button 
+                                variant="outline" 
+                                className="w-full sm:w-auto"
+                                size="sm"
+                              >
+                                {event.type === "slaughter" ? "View Collection Details" : "View Slaughter Details"}
+                                <ArrowRight className="ml-1 h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
