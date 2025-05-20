@@ -27,7 +27,7 @@ const CalendarView = () => {
   useEffect(() => {
     if (error) {
       toast.error("Failed to load calendar events", {
-        description: "Please try again later.",
+        description: "Using cached data instead.",
       });
       console.error("Calendar fetch error:", error);
     }
@@ -93,7 +93,7 @@ const CalendarView = () => {
                   mode="single"
                   selected={date}
                   onSelect={setDate}
-                  className="rounded-md border"
+                  className="rounded-md border pointer-events-auto"
                   modifiers={{
                     booked: datesWithEvents,
                   }}
@@ -173,13 +173,13 @@ const CalendarView = () => {
                       <span>Jump to date</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
+                  <PopoverContent className="w-auto p-0 pointer-events-auto" align="end">
                     <Calendar
                       mode="single"
                       selected={date}
                       onSelect={setDate}
                       initialFocus
-                      className={cn("p-3 pointer-events-auto")}
+                      className="p-3"
                     />
                   </PopoverContent>
                 </Popover>
