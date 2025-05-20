@@ -17,6 +17,11 @@ const mockSlaughterEvents: CalendarEvent[] = [
   { id: 3, date: new Date(2025, 5, 25).toISOString(), animals: ["Large Cow", "Premium Goat"], location: "West Facility", type: 'slaughter' },
   { id: 4, date: new Date(2025, 5, 27).toISOString(), animals: ["Premium Cow", "Medium Goat"], location: "North Facility", type: 'slaughter' },
   { id: 5, date: new Date(2025, 5, 29).toISOString(), animals: ["Standard Cow", "Large Goat"], location: "South Facility", type: 'slaughter' },
+  { id: 6, date: new Date(2025, 6, 2).toISOString(), animals: ["Premium Cow", "Medium Goat"], location: "Central Facility", type: 'slaughter' },
+  { id: 7, date: new Date(2025, 6, 5).toISOString(), animals: ["Large Cow", "Standard Goat"], location: "East Facility", type: 'slaughter' },
+  { id: 8, date: new Date(2025, 6, 8).toISOString(), animals: ["Medium Cow", "Premium Goat"], location: "West Facility", type: 'slaughter' },
+  { id: 9, date: new Date(2025, 6, 11).toISOString(), animals: ["Premium Cow", "Large Goat"], location: "North Facility", type: 'slaughter' },
+  { id: 10, date: new Date(2025, 6, 15).toISOString(), animals: ["Standard Cow", "Medium Goat"], location: "South Facility", type: 'slaughter' },
 ];
 
 // Mock data for the collection events
@@ -26,6 +31,11 @@ const mockCollectionEvents: CalendarEvent[] = [
   { id: 3, date: new Date(2025, 5, 26).toISOString(), animals: ["Large Cow", "Premium Goat"], location: "Distribution Center C", type: 'collection' },
   { id: 4, date: new Date(2025, 5, 28).toISOString(), animals: ["Premium Cow", "Medium Goat"], location: "Distribution Center D", type: 'collection' },
   { id: 5, date: new Date(2025, 5, 30).toISOString(), animals: ["Standard Cow", "Large Goat"], location: "Distribution Center E", type: 'collection' },
+  { id: 6, date: new Date(2025, 6, 3).toISOString(), animals: ["Premium Cow", "Large Goat"], location: "Distribution Center A", type: 'collection' },
+  { id: 7, date: new Date(2025, 6, 6).toISOString(), animals: ["Medium Cow", "Standard Goat"], location: "Distribution Center B", type: 'collection' },
+  { id: 8, date: new Date(2025, 6, 9).toISOString(), animals: ["Large Cow", "Premium Goat"], location: "Distribution Center C", type: 'collection' },
+  { id: 9, date: new Date(2025, 6, 12).toISOString(), animals: ["Premium Cow", "Medium Goat"], location: "Distribution Center D", type: 'collection' },
+  { id: 10, date: new Date(2025, 6, 16).toISOString(), animals: ["Standard Cow", "Large Goat"], location: "Distribution Center E", type: 'collection' },
 ];
 
 // Calendar API service

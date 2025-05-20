@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { 
@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/contexts/CartContext"; 
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -27,11 +28,14 @@ const Navbar = () => {
   const [userName, setUserName] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const { getTotalItems } = useCart();
 
+  // Check auth status on initial load and when location changes
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+  }, [location.pathname]);
 
   const checkAuthStatus = () => {
     const isAuthenticated = userService.checkAuth();
@@ -61,6 +65,8 @@ const Navbar = () => {
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+
+  const cartItemCount = getTotalItems();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background">
@@ -99,8 +105,13 @@ const Navbar = () => {
         </nav>
         
         <div className="ml-auto md:ml-6 flex items-center gap-4">
-          <Link to="/cart" className="text-foreground hover:text-brand-600">
+          <Link to="/cart" className="relative text-foreground hover:text-brand-600">
             <ShoppingCart className="h-5 w-5" />
+            {cartItemCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-brand-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
           </Link>
           
           {isLoggedIn ? (
@@ -140,14 +151,14 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <>
+            <div className="flex items-center gap-2">
               <Button asChild variant="ghost" className="hidden md:inline-flex">
                 <Link to="/login">Login</Link>
               </Button>
               <Button asChild>
                 <Link to="/register">Sign Up</Link>
               </Button>
-            </>
+            </div>
           )}
           
           <Sheet>
