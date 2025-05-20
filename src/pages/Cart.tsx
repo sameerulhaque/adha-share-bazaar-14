@@ -26,6 +26,12 @@ const Cart = () => {
     }, 1500);
   };
 
+  // Helper function to safely capitalize category
+  const formatCategory = (category?: string) => {
+    if (!category) return "Unknown";
+    return category.charAt(0).toUpperCase() + category.slice(1);
+  };
+
   if (items.length === 0) {
     return (
       <div className="container px-4 sm:px-8 py-12 min-h-[calc(100vh-4rem)]">
@@ -65,7 +71,7 @@ const Cart = () => {
                       <div>
                         <h3 className="text-xl font-semibold">{item.name}</h3>
                         <p className="text-sm text-muted-foreground mb-2">
-                          {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+                          {formatCategory(item.category)}
                         </p>
                       </div>
                       <span className="text-brand-700 font-bold">
