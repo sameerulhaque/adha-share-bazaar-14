@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
@@ -51,7 +50,23 @@ const AnimalManagement = () => {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["animals", page],
     queryFn: () => animalService.getPaginatedAnimals(page, pageSize),
+    meta: {
+      onError: (error) => {
+        console.error("Error fetching animals:", error);
+        toast.error("Failed to fetch animals", {
+          description: "Using cached data instead."
+        });
+      }
+    }
   });
+
+  // Initialize default data structure to avoid undefined errors
+  const safeData = {
+    animals: data?.animals || [],
+    totalItems: data?.totalItems || 0,
+    totalPages: data?.totalPages || 1,
+    currentPage: data?.currentPage || 1,
+  };
 
   const form = useForm<AnimalFormValues>({
     resolver: zodResolver(animalSchema),
@@ -209,7 +224,7 @@ const AnimalManagement = () => {
     }
   };
 
-  const totalPages = data?.totalPages || 1;
+  const totalPages = safeData.totalPages;
 
   return (
     <div className="container py-8">
@@ -404,7 +419,7 @@ const AnimalManagement = () => {
         <CardHeader>
           <CardTitle>Animals</CardTitle>
           <CardDescription>
-            Showing {data?.animals.length || 0} of {data?.totalItems || 0} animals
+            Showing {safeData.animals.length || 0} of {safeData.totalItems || 0} animals
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -428,7 +443,7 @@ const AnimalManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data?.animals.map((animal) => (
+                    {safeData.animals.map((animal) => (
                       <TableRow key={animal.id}>
                         <TableCell>
                           <div className="h-10 w-10 overflow-hidden rounded">

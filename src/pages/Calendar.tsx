@@ -34,7 +34,7 @@ const CalendarView = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [calendarType, setCalendarType] = useState<"slaughter" | "collection">("slaughter");
   
-  // Fetch events based on calendar type
+  // Fetch events based on calendar type with proper error handling
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['calendar', calendarType],
     queryFn: () => calendarService.getEventsByType(calendarType),
@@ -49,7 +49,7 @@ const CalendarView = () => {
 
   // Get events for the selected date
   const getEventsForDate = useCallback((date: Date | undefined) => {
-    if (!date) return [];
+    if (!date || !events || events.length === 0) return [];
     
     return events.filter(event => {
       const eventDate = parseISO(event.date);
@@ -59,6 +59,7 @@ const CalendarView = () => {
   
   // Generate all dates that have events
   const getDatesWithEvents = useCallback(() => {
+    if (!events || events.length === 0) return [];
     return events.map(event => parseISO(event.date));
   }, [events]);
 
