@@ -65,7 +65,7 @@ const AnimalManagement = () => {
     animals: data?.animals || [],
     totalItems: data?.totalItems || 0,
     totalPages: data?.totalPages || 1,
-    currentPage: data?.currentPage || 1,
+    // Remove the currentPage property as it doesn't exist in the return type
   };
 
   const form = useForm<AnimalFormValues>({
