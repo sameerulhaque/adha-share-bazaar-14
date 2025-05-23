@@ -20,6 +20,7 @@ import Calendar from "./pages/Calendar";
 import Profile from "./pages/Profile";
 import AnimalManagement from "./pages/admin/AnimalManagement";
 import BookingManagement from "./pages/admin/BookingManagement";
+import AddBooking from "./pages/admin/AddBooking";
 import { CartProvider } from "./contexts/CartContext";
 import AdminRoute from "./components/Auth/AdminRoute";
 
@@ -56,6 +57,11 @@ const App = () => (
               <Route path="/admin/bookings" element={
                 <AdminRoute>
                   <BookingManagement />
+                </AdminRoute>
+              } />
+              <Route path="/admin/add-booking" element={
+                <AdminRoute>
+                  <AddBooking />
                 </AdminRoute>
               } />
               
