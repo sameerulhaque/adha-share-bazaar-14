@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { animalService, Animal } from "@/services/animalService";
@@ -126,7 +127,7 @@ const AnimalDetail = () => {
                   <div>
                     <span className="text-muted-foreground">Status</span>
                     <div>
-                      {animal.status === "available" ? (
+                      {animal.remainingShares === animal.totalShares ? (
                         <Badge className="bg-green-500 text-white">Available</Badge>
                       ) : (
                         <Badge className="bg-red-500 text-white">Booked</Badge>
