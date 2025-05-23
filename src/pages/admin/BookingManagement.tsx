@@ -54,6 +54,11 @@ const BookingManagement = () => {
     }
   };
 
+  // Safe data access with default values
+  const bookings = data?.bookings || [];
+  const totalItems = data?.totalItems || 0;
+  const totalPages = data?.totalPages || 1;
+
   return (
     <div className="container py-8">
       <div className="flex justify-between items-center mb-6">
@@ -75,7 +80,7 @@ const BookingManagement = () => {
             <div>
               <CardTitle>Customer Bookings</CardTitle>
               <CardDescription>
-                Showing {data?.bookings.length || 0} of {data?.totalItems || 0} bookings
+                Showing {bookings.length} of {totalItems} bookings
               </CardDescription>
             </div>
             
@@ -116,7 +121,7 @@ const BookingManagement = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data?.bookings.map((booking) => (
+                    {bookings.map((booking) => (
                       <TableRow key={booking.id}>
                         <TableCell>
                           <div>
@@ -157,7 +162,7 @@ const BookingManagement = () => {
               
               <div className="flex items-center justify-between mt-4">
                 <div className="text-sm text-muted-foreground">
-                  Page {page} of {data?.totalPages || 1}
+                  Page {page} of {totalPages}
                 </div>
                 <div className="flex space-x-2">
                   <Button
@@ -171,8 +176,8 @@ const BookingManagement = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.min(p + 1, data?.totalPages || 1))}
-                    disabled={page === data?.totalPages}
+                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={page === totalPages}
                   >
                     Next
                   </Button>
