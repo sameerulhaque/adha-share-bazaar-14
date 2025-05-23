@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -46,6 +46,7 @@ const AddBooking = () => {
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [isLoadingAnimals, setIsLoadingAnimals] = useState(true);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null);
+  const [maxAvailableShares, setMaxAvailableShares] = useState<number>(1);
 
   // Form setup
   const form = useForm<FormValues>({
@@ -61,7 +62,7 @@ const AddBooking = () => {
   });
 
   // Load animals on mount
-  useState(() => {
+  useEffect(() => {
     const fetchAnimals = async () => {
       try {
         const animalsData = await animalService.getAllAnimals();
@@ -75,12 +76,22 @@ const AddBooking = () => {
     };
     
     fetchAnimals();
-  });
+  }, []);
 
-  // Handle animal selection to update price calculation
+  // Handle animal selection to update price calculation and max shares
   const handleAnimalChange = (animalId: string) => {
     const animal = animals.find(a => a.id === animalId);
     setSelectedAnimal(animal || null);
+    
+    if (animal) {
+      // Set maximum available shares
+      const availableShares = animal.remainingShares || 0;
+      setMaxAvailableShares(availableShares);
+      
+      // Reset shares to 1 or max available if less than 1
+      const newSharesValue = availableShares < 1 ? availableShares : 1;
+      form.setValue('shares', newSharesValue);
+    }
   };
 
   // Create booking mutation
@@ -105,6 +116,11 @@ const AddBooking = () => {
       const animal = animals.find(a => a.id === data.animalId);
       if (!animal) throw new Error("Selected animal not found");
       
+      // Validate shares against available shares
+      if (data.shares > animal.remainingShares) {
+        throw new Error(`Only ${animal.remainingShares} shares available for this animal`);
+      }
+      
       const bookingData: Partial<Booking> = {
         userId,
         userName: data.userName,
@@ -125,9 +141,9 @@ const AddBooking = () => {
       toast.success("Booking created successfully");
       navigate("/admin/bookings");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Error creating booking:", error);
-      toast.error("Failed to create booking");
+      toast.error(error.message || "Failed to create booking");
     }
   });
 
@@ -228,7 +244,7 @@ const AddBooking = () => {
                               ) : (
                                 animals.map((animal) => (
                                   <SelectItem key={animal.id} value={animal.id}>
-                                    {animal.name} - ₹{animal.price.toLocaleString()}
+                                    {animal.name} - ₹{animal.price.toLocaleString()} ({animal.remainingShares} shares available)
                                   </SelectItem>
                                 ))
                               )}
@@ -249,10 +265,20 @@ const AddBooking = () => {
                             <Input 
                               type="number" 
                               min="1" 
+                              max={maxAvailableShares}
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value);
+                                const limitedValue = Math.min(Math.max(1, value), maxAvailableShares);
+                                field.onChange(limitedValue);
+                              }}
                             />
                           </FormControl>
+                          {selectedAnimal && (
+                            <p className="text-xs text-muted-foreground">
+                              Maximum available: {maxAvailableShares} shares
+                            </p>
+                          )}
                           <FormMessage />
                         </FormItem>
                       )}
@@ -266,6 +292,9 @@ const AddBooking = () => {
                         </p>
                         <p className="text-sm">
                           <span className="text-muted-foreground">Price per share:</span> ₹{(selectedAnimal.pricePerShare || selectedAnimal.price).toLocaleString()}
+                        </p>
+                        <p className="text-sm">
+                          <span className="text-muted-foreground">Available shares:</span> {selectedAnimal.remainingShares}
                         </p>
                         <p className="text-sm">
                           <span className="text-muted-foreground">Total amount:</span> ₹{((selectedAnimal.pricePerShare || selectedAnimal.price) * (form.watch('shares') || 1)).toLocaleString()}
@@ -304,7 +333,7 @@ const AddBooking = () => {
                 </Button>
                 <Button 
                   type="submit"
-                  disabled={createBookingMutation.isPending}
+                  disabled={createBookingMutation.isPending || !selectedAnimal || selectedAnimal.remainingShares < 1}
                 >
                   {createBookingMutation.isPending ? "Creating..." : "Create Booking"}
                 </Button>
